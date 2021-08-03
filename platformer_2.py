@@ -2,8 +2,6 @@
 # A platforming game featuring a grappling hook and moving camera
 
 ### THINGS TO DO ###
-#   -   Merge platforms for physics stability
-#   -   Add jumping
 #   -   Add grappling hook
 #   -   Custom level, sprites
 #   -   Clean up
@@ -21,6 +19,8 @@ if pymunk.version != '5.7.0':
     error = ImportError()
     error.message = "Pymunk must be at version 5.7.0, due to a gamebreaking incompatibility with pymunk 6.0.0 and pygame"
     raise error
+
+SPEED_LIMIT = 40
     
 
 #   INITIALISATION
@@ -77,7 +77,6 @@ def load_map(path_to_level):
             rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
             rects.append(rect)
 
-    print(rects)
     for i in range(2):
         for rect in rects:
             for rect_2 in rects:
@@ -87,7 +86,6 @@ def load_map(path_to_level):
                         rect.x = rect_2.x
 
                     rects.remove(rect_2)
-    print(rects)
 
     for rect in rects:
         space.static_body.position = (              # A pymunk space contains only one static body. The position of this body does not matter. This is a performance saver, however we have to move the static body every time we make a new box.
@@ -95,8 +93,7 @@ def load_map(path_to_level):
                 -(rect.y + rect.height/2) + 600)  # I don't know why 109 is the correct amount. 
 
         box = pymunk.Poly.create_box(space.static_body, (rect.width, rect.height))
-        box.friction = 0.5
-        print(box)
+        box.friction = 0.8
         
         space.add(box)
 
@@ -155,12 +152,16 @@ while not done:
             if event.key == pygame.K_SPACE and grounded:
                 player.body.apply_impulse_at_local_point((0, 100)) # Jump
 
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
+                player.body._set_velocity((player.body.velocity.x * 0.25, player.body.velocity.y))
+
     if done: break # Quit Game
 
     grounded = False
     for x, y, gid in map.get_layer_by_name("Platforms"):
         if map.get_tile_image_by_gid(gid) != None:
-            rect = pygame.Rect(x * map.tilewidth, y * map.tileheight - 5, map.tilewidth, map.tileheight)
+            rect = pygame.Rect(x * map.tilewidth, y * map.tileheight - 10, map.tilewidth, map.tileheight)
             if rect.colliderect(player.rect):
                 grounded = True
 
@@ -170,6 +171,12 @@ while not done:
 
     player.rect.center = convert_pygame(player.body.position)
     player.body.angle = 0 # Prevent flipping
+
+    if grounded:
+        if player.body.velocity.x > SPEED_LIMIT:
+            player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
+        elif player.body.velocity.x < -SPEED_LIMIT:
+            player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
 
     camera = pygame.Vector2((-player.body.position[0] + 250, player.body.position[1] - 100)) # center camera on player
 
