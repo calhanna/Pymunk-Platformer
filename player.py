@@ -11,10 +11,10 @@ class Player():
 
         self.rect.x, self.rect.y = x, y
 
-        self.body = pymunk.Body(2, pymunk.moment_for_box(2, (16, 24)))
+        self.body = pymunk.Body(2, pymunk.moment_for_box(2, (32, 48)))
         self.body.position = (x, -y + 600)
 
-        self.hitbox = pymunk.Poly.create_box(self.body, (16,24))
+        self.hitbox = pymunk.Poly.create_box(self.body, (32,48))
         self.hitbox.friction = 0.5
 
         space.add(self.body, self.hitbox)
@@ -34,6 +34,6 @@ class Player():
             self.hitbox.friction = 0.8
 
         if gnd:
-            self.body.apply_impulse_at_local_point(move*0.5)
+            self.body.apply_impulse_at_local_point(move*5)
         else:
-            self.body.apply_impulse_at_local_point(move*0.25)
+            self.body.apply_impulse_at_local_point(move*2.5)

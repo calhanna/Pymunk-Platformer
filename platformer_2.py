@@ -20,9 +20,8 @@ if pymunk.version != '5.7.0':
     error.message = "Pymunk must be at version 5.7.0, due to a gamebreaking incompatibility with pymunk 6.0.0 and pygame"
     raise error
 
-SPEED_LIMIT = 40
+SPEED_LIMIT = 120
     
-
 #   INITIALISATION
 #-------------------------------
 
@@ -33,10 +32,10 @@ dt = 0
 
 screen = pygame.display.set_mode((800, 600))
 
-debug_layer = pygame.Surface((12000, 600))  # Debug layer
+debug_layer = pygame.Surface((5120, 5120))  # When debug_draw is active we draw every hit box to this layer and then offset the layer so it moves with the camera.
 
 space = pymunk.Space()
-space.gravity = 0, -20
+space.gravity = 0, -200
 
 camera = pygame.Vector2((0,0))      #The "camera" is a vector by which we offset every element before drawing it.
 
@@ -64,23 +63,13 @@ def load_map(path_to_level):
     for x, y, gid in map.get_layer_by_name("Platforms"):
 
         if map.get_tile_image_by_gid(gid) != None:      # Every tile without an image is assigned to the first layer, for some reason. This will crash if we try to draw a nonexistant image, so we check.
-
-            #space.static_body.position = (              # A pymunk space contains only one static body. The position of this body does not matter. This is a performance saver, however we have to move the static body every time we make a new box.
-            #    x * map.tilewidth + map.tilewidth/2,    # Pytmx loads the (x,y) coordinates based on the tile position, i.e 2 tiles to the left and 3 tiles up. We multiply this by the tile width to get the actual coordinate
-            #    -(y * map.height + map.tileheight/2) + 109)  # I don't know why 109 is the correct amount. 
-
-            #box = pymunk.Poly.create_box(space.static_body, (map.tilewidth, map.tileheight))
-            #box.friction = 0.5
-
-            #space.add(box)
-
             rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
             rects.append(rect)
 
     for i in range(2):
         for rect in rects:
             for rect_2 in rects:
-                if rect.y == rect_2.y and rect != rect_2:
+                if rect.y == rect_2.y and rect != rect_2 and rect.x - rect_2.x < 128 and rect.x - rect_2.x > -128:
                     rect.width += rect_2.width
                     if rect_2.x < rect.x:
                         rect.x = rect_2.x
@@ -100,7 +89,7 @@ def load_map(path_to_level):
 
     return map
 
-map = load_map('maps/test_level.tmx')
+map = load_map('maps/test_level_2.tmx')
 
 player = Player(100, 50, space)
 
@@ -134,7 +123,6 @@ def draw():
 
 done = False
 while not done:
-
     keys = pygame.key.get_pressed()
 
     for event in pygame.event.get():
@@ -150,7 +138,7 @@ while not done:
                 debug = not debug   # Toggle drawing hitboxes
 
             if event.key == pygame.K_SPACE and grounded:
-                player.body.apply_impulse_at_local_point((0, 100)) # Jump
+                player.body.apply_impulse_at_local_point((0, 500)) # Jump
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
@@ -172,15 +160,16 @@ while not done:
     player.rect.center = convert_pygame(player.body.position)
     player.body.angle = 0 # Prevent flipping
 
-    if grounded:
-        if player.body.velocity.x > SPEED_LIMIT:
+    if grounded:                                    # Velocity Limiting. We take the player's current horizontal velocity and check it against the speed limit. 
+        if player.body.velocity.x > SPEED_LIMIT:    # If it is above, we set the velocity to the speed limit, but do not change the vertical velocity.
             player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
         elif player.body.velocity.x < -SPEED_LIMIT:
             player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
 
-    camera = pygame.Vector2((-player.body.position[0] + 250, player.body.position[1] - 100)) # center camera on player
+    camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player
 
     draw()
 
+    print(clock.get_fps())
     pygame.display.update()
-    #clock.tick(120)
+    clock.tick(120)
