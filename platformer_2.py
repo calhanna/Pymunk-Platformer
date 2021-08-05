@@ -2,8 +2,11 @@
 # A platforming game featuring a grappling hook and moving camera
 
 ### THINGS TO DO ###
+#   -   Background
+#   -   Fix Debug Draw
+#   -   Fix platform merging
 #   -   Add grappling hook
-#   -   Custom level, sprites
+#   -   More Level Design
 #   -   Clean up
 
 
@@ -21,6 +24,7 @@ if pymunk.version != '5.7.0':
     raise error
 
 SPEED_LIMIT = 120
+GRAVITY = 300
     
 #   INITIALISATION
 #-------------------------------
@@ -35,7 +39,7 @@ screen = pygame.display.set_mode((800, 600))
 debug_layer = pygame.Surface((5120, 5120))  # When debug_draw is active we draw every hit box to this layer and then offset the layer so it moves with the camera.
 
 space = pymunk.Space()
-space.gravity = 0, -200
+space.gravity = 0, -GRAVITY
 
 camera = pygame.Vector2((0,0))      #The "camera" is a vector by which we offset every element before drawing it.
 
@@ -43,6 +47,8 @@ draw_options = pymunk.pygame_util.DrawOptions(debug_layer) # Debug Utility
 debug = False
 
 grounded = False
+
+grapple = None
 
 #--------------------------------
 
@@ -66,20 +72,24 @@ def load_map(path_to_level):
             rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
             rects.append(rect)
 
-    for i in range(2):
-        for rect in rects:
+    for i in range(2):                                  # This merges the platforms before making collision bodies. This is supposed to prevent the player from jumping a little whenever they go over the border of two tiles.
+        for rect in rects:                              # However, it is kinda broken right now, and you may notice a bump between the 4th and 5th tiles of the first platform.
             for rect_2 in rects:
-                if rect.y == rect_2.y and rect != rect_2 and rect.x - rect_2.x < 128 and rect.x - rect_2.x > -128:
-                    rect.width += rect_2.width
-                    if rect_2.x < rect.x:
-                        rect.x = rect_2.x
+                if rect.y == rect_2.y and rect != rect_2:
+                    if rect.x - rect_2.x < rect.width + 128 and rect.x - rect_2.x >= -128:
+                        rect.width += rect_2.width
+                        if rect_2.x < rect.x:
+                            rect.x = rect_2.x
 
-                    rects.remove(rect_2)
+                        rects.remove(rect_2)
+
+    print(rects)
+
 
     for rect in rects:
         space.static_body.position = (              # A pymunk space contains only one static body. The position of this body does not matter. This is a performance saver, however we have to move the static body every time we make a new box.
                 rect.x + rect.width/2,    # Pytmx loads the (x,y) coordinates based on the tile position, i.e 2 tiles to the left and 3 tiles up. We multiply this by the tile width to get the actual coordinate
-                -(rect.y + rect.height/2) + 600)  # I don't know why 109 is the correct amount. 
+                -(rect.y + rect.height/2) + 600) 
 
         box = pymunk.Poly.create_box(space.static_body, (rect.width, rect.height))
         box.friction = 0.8
@@ -91,7 +101,7 @@ def load_map(path_to_level):
 
 map = load_map('maps/test_level_2.tmx')
 
-player = Player(100, 50, space)
+player = Player(100, 500, space)
 
 def convert_pygame(pos):
     """ Convert between pymunk coordinates, which dictate the center of an object, to pygame coordinates, which dictate the top left corner."""
@@ -100,7 +110,7 @@ def convert_pygame(pos):
 def draw():
     """ Draw every object, including the level"""
 
-    screen.fill((255,255,255))
+    screen.fill((50,50,50))
 
     if debug: 
         debug_layer.fill((255,255,255))
@@ -144,8 +154,13 @@ while not done:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
                 player.body._set_velocity((player.body.velocity.x * 0.25, player.body.velocity.y))
 
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == pygame.BUTTON_LEFT:
+                pass
+
     if done: break # Quit Game
 
+    # Check if player is on a platform
     grounded = False
     for x, y, gid in map.get_layer_by_name("Platforms"):
         if map.get_tile_image_by_gid(gid) != None:
@@ -155,8 +170,10 @@ while not done:
 
     space.step(1/60)
 
+    #Player movement function
     player.update(pygame.event.get(), grounded)
 
+    # Update the position at which we draw the player
     player.rect.center = convert_pygame(player.body.position)
     player.body.angle = 0 # Prevent flipping
 
@@ -167,9 +184,8 @@ while not done:
             player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
 
     camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player
-
+  
     draw()
 
-    print(clock.get_fps())
     pygame.display.update()
     clock.tick(120)
