@@ -50,6 +50,8 @@ grounded = False
 
 grapple = None
 
+anchors = []
+
 #--------------------------------
 
 def load_map(path_to_level):
@@ -83,9 +85,6 @@ def load_map(path_to_level):
 
                         rects.remove(rect_2)
 
-    print(rects)
-
-
     for rect in rects:
         space.static_body.position = (              # A pymunk space contains only one static body. The position of this body does not matter. This is a performance saver, however we have to move the static body every time we make a new box.
                 rect.x + rect.width/2,    # Pytmx loads the (x,y) coordinates based on the tile position, i.e 2 tiles to the left and 3 tiles up. We multiply this by the tile width to get the actual coordinate
@@ -96,6 +95,14 @@ def load_map(path_to_level):
         
         space.add(box)
 
+    #loading grapple anchors
+    for x, y, gid in map.get_layer_by_name("Anchors"):
+        if map.get_tile_image_by_gid(gid) != None:
+            body = pymunk.Body(0, 0, body_type=pymunk.Body.KINEMATIC)
+            body.position = (x * map.tilewidth + map.tilewidth/2, -(y * map.tileheight + map.tileheight/2) + 600)
+
+            space.add(body)
+            anchors.append(body)
 
     return map
 
@@ -106,6 +113,13 @@ player = Player(100, 500, space)
 def convert_pygame(pos):
     """ Convert between pymunk coordinates, which dictate the center of an object, to pygame coordinates, which dictate the top left corner."""
     return (pos[0], -pos[1] + 600)
+
+def distance(pos, obj):
+    """ Returns the distance between two points"""
+
+    dx = pos[0] - obj[0]
+    dy = pos[1] - obj[1]
+    return math.sqrt((dx*dx) + (dy*dy))
 
 def draw():
     """ Draw every object, including the level"""
@@ -126,14 +140,17 @@ def draw():
                 rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
                 screen.blit(img, rect.move(*camera))
 
-    screen.blit(player.image, player.rect.move(*camera))
+    if grapple != None:
+        pygame.draw.line(screen, (0,255,0), (player.rect.center[0] + camera[0], player.rect.center[1] + camera[1]), (grapple.b.position[0] + camera[0], -grapple.b.position[1] + 600 + camera[1]))
 
+    screen.blit(player.image, player.rect.move(*camera))
 
     pygame.display.flip()
 
 done = False
 while not done:
     keys = pygame.key.get_pressed()
+    mouse = (pygame.mouse.get_pos()[0] - camera[0], pygame.mouse.get_pos()[1] - camera[1])  # Pygame's mouse works with *screen coordinates*, not *world coordinates*.
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -156,7 +173,15 @@ while not done:
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
-                pass
+                for anchor in anchors:  
+                    if distance(mouse, (anchor.position[0], -anchor.position[1] + 600)) < 20:
+                        grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, anchor, (0,0), (0,0), 10, 400)
+                        space.add(grapple)
+        
+        if event.type == pygame.MOUSEBUTTONUP:
+            if event.button == pygame.BUTTON_LEFT and grapple != None:
+                space.remove(grapple)
+                grapple = None
 
     if done: break # Quit Game
 
