@@ -4,8 +4,6 @@
 ### THINGS TO DO ###
 #   -   Background
 #   -   Fix Debug Draw
-#   -   Fix platform merging
-#   -   Add grappling hook
 #   -   More Level Design
 #   -   Clean up
 
@@ -127,7 +125,7 @@ def load_map(path_to_level):
 
 map = load_map('maps/test_level_2.tmx')
 
-player = Player(100, 500, space)
+player = Player(100, 800, space)
 
 def convert_pygame(pos):
     """ Convert between pymunk coordinates, which dictate the center of an object, to pygame coordinates, which dictate the top left corner."""
@@ -145,7 +143,10 @@ def find_angle(pos, obj):
     dx = pos[0] - obj[0]
     dy = pos[1] - obj[1]
 
-    return math.atan(dy/dx)
+    try:
+        return math.atan(dy/dx)
+    except:
+        return(math.radians(90))
 
 def draw():
     """ Draw every object, including the level"""
@@ -170,13 +171,22 @@ def draw():
         #pygame.draw.line(screen, (0,255,0), (player.rect.center[0] + camera[0], player.rect.center[1] + camera[1]), (grapple.b.position[0] + camera[0], -grapple.b.position[1] + 600 + camera[1]))
         gl = int(distance(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600)))
         angle = find_angle(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600))
-        print(math.degrees(angle))
-        for i in range(gl):
-            rect = chain.get_rect()
-            rect.x = int(player.rect.center[0] + i * math.cos(angle))
-            rect.y = int(player.rect.center[1] + i * math.sin(angle))
 
-            screen.blit(chain, rect.move(*camera))
+        if math.degrees(angle) >= 0: angle += math.radians(180)
+
+        if player.rect.center[1] <= -grapple.b.position[1] + 600:
+            angle += math.radians(180)
+
+        limit = int(gl/7)
+        for i in range(limit):              # Draws chain links in increments along the grappling hook to create the illusion of a chain 
+            rect = chain.get_rect()
+            rect.x = int(player.rect.center[0] - 5 + i * math.cos(angle) * 7)
+            rect.y = int(player.rect.center[1] - 5 + i * math.sin(angle) * 7)
+
+            # Finds the angle between the current link and the next. Do not look at it. Do not acknowlege it.
+            sub_angle = math.degrees(find_angle(rect.center, (player.rect.center[0] - 2 + (i+1) * math.cos(angle) * 7, (player.rect.center[1] - 1.5 + (i+1) * math.sin(angle) * 7))))
+
+            screen.blit(pygame.transform.rotate(chain, -sub_angle+95), rect.move(*camera))  # I do not know why you have to make sub_angle negative. I do not know why you have to add exactly 95 degrees. Do not ask me as I will probably scream.
 
 
     screen.blit(player.image, player.rect.move(*camera))
@@ -189,15 +199,13 @@ while not done:
     mouse = (pygame.mouse.get_pos()[0] - camera[0], pygame.mouse.get_pos()[1] - camera[1])  # Pygame's mouse works with *screen coordinates*, not *world coordinates*.
 
     if grapple != None:
-        grapple.max = distance(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600))
-
         if pygame.mouse.get_pressed()[0] == False:
             space.remove(grapple)
             grapple = None
 
         if keys[pygame.K_LSHIFT]:
             grapple_increment += 0.25
-            if grapple.max > grapple.min:
+            if grapple.max > 80:
                 grapple.max -= grapple_increment
         else:
             grapple_increment = 0
@@ -217,6 +225,7 @@ while not done:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_p and keys[pygame.K_LCTRL]:
                 debug = not debug   # Toggle drawing hitboxes
+                space.gravity = 0,0
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
