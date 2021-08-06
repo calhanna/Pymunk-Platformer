@@ -49,10 +49,29 @@ debug = False
 grounded = False
 
 grapple = None
+grapple_increment = 0
 
 anchors = []
 
 #--------------------------------
+
+def load_image(filename, colorkey_pixel = None):
+    """ Loads an image and converts the transparent pixels """
+    try:
+        image = pygame.image.load(filename)    
+    except pygame.error:
+        print('Cannot load image ' + filename)
+        raise SystemExit
+
+    image = image.convert()
+    if colorkey_pixel is not None:  # select transparent colour
+        colorkey = image.get_at(colorkey_pixel)
+        image.set_colorkey(colorkey, pygame.RLEACCEL)
+
+    return image, image.get_rect()
+
+chain = load_image("images/items/chain.png", (1,0))[0]
+
 
 def load_map(path_to_level):
     """ 
@@ -121,6 +140,13 @@ def distance(pos, obj):
     dy = pos[1] - obj[1]
     return math.sqrt((dx*dx) + (dy*dy))
 
+def find_angle(pos, obj):
+    """ Returns the angle from point pos to point obj """
+    dx = pos[0] - obj[0]
+    dy = pos[1] - obj[1]
+
+    return math.atan(dy/dx)
+
 def draw():
     """ Draw every object, including the level"""
 
@@ -141,7 +167,17 @@ def draw():
                 screen.blit(img, rect.move(*camera))
 
     if grapple != None:
-        pygame.draw.line(screen, (0,255,0), (player.rect.center[0] + camera[0], player.rect.center[1] + camera[1]), (grapple.b.position[0] + camera[0], -grapple.b.position[1] + 600 + camera[1]))
+        #pygame.draw.line(screen, (0,255,0), (player.rect.center[0] + camera[0], player.rect.center[1] + camera[1]), (grapple.b.position[0] + camera[0], -grapple.b.position[1] + 600 + camera[1]))
+        gl = int(distance(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600)))
+        angle = find_angle(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600))
+        print(math.degrees(angle))
+        for i in range(gl):
+            rect = chain.get_rect()
+            rect.x = int(player.rect.center[0] + i * math.cos(angle))
+            rect.y = int(player.rect.center[1] + i * math.sin(angle))
+
+            screen.blit(chain, rect.move(*camera))
+
 
     screen.blit(player.image, player.rect.move(*camera))
 
@@ -151,6 +187,24 @@ done = False
 while not done:
     keys = pygame.key.get_pressed()
     mouse = (pygame.mouse.get_pos()[0] - camera[0], pygame.mouse.get_pos()[1] - camera[1])  # Pygame's mouse works with *screen coordinates*, not *world coordinates*.
+
+    if grapple != None:
+        grapple.max = distance(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600))
+
+        if pygame.mouse.get_pressed()[0] == False:
+            space.remove(grapple)
+            grapple = None
+
+        if keys[pygame.K_LSHIFT]:
+            grapple_increment += 0.25
+            if grapple.max > grapple.min:
+                grapple.max -= grapple_increment
+        else:
+            grapple_increment = 0
+        
+        if keys[pygame.K_LCTRL]:
+            grapple.max += 5
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -164,9 +218,6 @@ while not done:
             if event.key == pygame.K_p and keys[pygame.K_LCTRL]:
                 debug = not debug   # Toggle drawing hitboxes
 
-            if event.key == pygame.K_SPACE and grounded:
-                player.body.apply_impulse_at_local_point((0, 500)) # Jump
-
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
                 player.body._set_velocity((player.body.velocity.x * 0.25, player.body.velocity.y))
@@ -174,14 +225,10 @@ while not done:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == pygame.BUTTON_LEFT:
                 for anchor in anchors:  
-                    if distance(mouse, (anchor.position[0], -anchor.position[1] + 600)) < 20:
-                        grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, anchor, (0,0), (0,0), 10, 400)
-                        space.add(grapple)
-        
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == pygame.BUTTON_LEFT and grapple != None:
-                space.remove(grapple)
-                grapple = None
+                    if distance(mouse, (anchor.position[0], -anchor.position[1] + 600)) < 60:
+                        max = distance(player.rect.center, (anchor.position[0], -anchor.position[1] + 600))
+                        grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, anchor, (0,0), (0,0), 0, max)    #   We set the grapple to a pymunk SlideJoint constraint which allows the player to move so long as it is not outside of the min and max distances
+                        space.add(grapple)                                                                              #   Good for modelling chains.
 
     if done: break # Quit Game
 
@@ -202,11 +249,15 @@ while not done:
     player.rect.center = convert_pygame(player.body.position)
     player.body.angle = 0 # Prevent flipping
 
-    if grounded:                                    # Velocity Limiting. We take the player's current horizontal velocity and check it against the speed limit. 
-        if player.body.velocity.x > SPEED_LIMIT:    # If it is above, we set the velocity to the speed limit, but do not change the vertical velocity.
-            player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
-        elif player.body.velocity.x < -SPEED_LIMIT:
-            player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
+    #if grounded:                                    # Velocity Limiting. We take the player's current horizontal velocity and check it against the speed limit. 
+    #    if player.body.velocity.x > SPEED_LIMIT:    # If it is above, we set the velocity to the speed limit, but do not change the vertical velocity.
+    #        player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
+    #    elif player.body.velocity.x < -SPEED_LIMIT:
+    #        player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
+
+    if keys[pygame.K_SPACE] and grounded:
+            player.body.apply_impulse_at_local_point((0, 100)) # Jump
+            grounded = False
 
     camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player
   
