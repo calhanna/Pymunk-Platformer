@@ -17,12 +17,11 @@ import pymunk, pymunk.pygame_util
 from player import Player
 
 if pymunk.version != '5.7.0':
-    error = ImportError()
-    error.message = "Pymunk must be at version 5.7.0, due to a gamebreaking incompatibility with pymunk 6.0.0 and pygame"
-    raise error
+    print("Pymunk must be at version 5.7.0, due to a gamebreaking incompatibility with pymunk 6.0.0 and pygame")
+    raise ImportError()
 
 SPEED_LIMIT = 120
-GRAVITY = 300
+GRAVITY = 600
     
 #   INITIALISATION
 #-------------------------------
@@ -50,6 +49,7 @@ grapple = None
 grapple_increment = 0
 
 anchors = []
+objects = []
 
 #--------------------------------
 
@@ -121,6 +121,18 @@ def load_map(path_to_level):
             space.add(body)
             anchors.append(body)
 
+    #loading dynamic objects
+    for object in map.objects:
+        body = pymunk.Body(object.mass, pymunk.moment_for_box(object.mass,(32,32)))
+        body.position = (object.x + 16, -(object.y + 16) + 600)
+
+        hitbox = pymunk.Poly.create_box(body, (32,32))
+        hitbox.friction = 0.5
+
+        space.add(body, hitbox)
+        objects.append((hitbox, object.image))
+
+
     return map
 
 map = load_map('maps/test_level_2.tmx')
@@ -159,13 +171,18 @@ def draw():
         screen.blit(debug_layer, camera)    #   Draw the layer containing all hitboxes and debug utilities to the screen, offset by the camera
 
     for layer in map.visible_layers:
+        if layer != map.get_layer_by_name("Dynamic Objects"):
+            for x, y, gid in layer:
+                img = map.get_tile_image_by_gid(gid)
 
-        for x, y, gid in layer:
-            img = map.get_tile_image_by_gid(gid)
+                if img != None:
+                    rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
+                    screen.blit(img, rect.move(*camera))
+        else:
+            for object in objects:  #   Each object is a tuple containing the hitbox and the tile image
+                rect = pygame.Rect(object[0].body.position[0] - 16, -object[0].body.position[1] + 600 - 16, 32, 32)
+                screen.blit(object[1], rect.move(*camera))
 
-            if img != None:
-                rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
-                screen.blit(img, rect.move(*camera))
 
     if grapple != None:
         #pygame.draw.line(screen, (0,255,0), (player.rect.center[0] + camera[0], player.rect.center[1] + camera[1]), (grapple.b.position[0] + camera[0], -grapple.b.position[1] + 600 + camera[1]))
@@ -199,12 +216,8 @@ while not done:
     mouse = (pygame.mouse.get_pos()[0] - camera[0], pygame.mouse.get_pos()[1] - camera[1])  # Pygame's mouse works with *screen coordinates*, not *world coordinates*.
 
     if grapple != None:
-        if pygame.mouse.get_pressed()[0] == False:
-            space.remove(grapple)
-            grapple = None
-
         if keys[pygame.K_LSHIFT]:
-            grapple_increment += 0.25
+            grapple_increment += 1
             if grapple.max > 80:
                 grapple.max -= grapple_increment
         else:
@@ -212,6 +225,10 @@ while not done:
         
         if keys[pygame.K_LCTRL]:
             grapple.max += 5
+
+        if pygame.mouse.get_pressed()[0] == False:
+            space.remove(grapple)
+            grapple = None
 
 
     for event in pygame.event.get():
@@ -265,7 +282,7 @@ while not done:
     #        player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
 
     if keys[pygame.K_SPACE] and grounded:
-            player.body.apply_impulse_at_local_point((0, 100)) # Jump
+            player.body.apply_impulse_at_local_point((0, 200)) # Jump
             grounded = False
 
     camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player

@@ -34,6 +34,6 @@ class Player():
             self.hitbox.friction = 0.8
 
         if gnd:
-            self.body.apply_impulse_at_local_point(move*5)
+            self.body.apply_impulse_at_local_point(move*10)
         else:
-            self.body.apply_impulse_at_local_point(move*2.5)
+            self.body.apply_impulse_at_local_point(move*5)
