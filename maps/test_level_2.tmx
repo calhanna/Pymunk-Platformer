@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="1.6.0" orientation="orthogonal" renderorder="right-down" width="40" height="20" tilewidth="128" tileheight="128" infinite="0" nextlayerid="7" nextobjectid="7">
+<map version="1.0" tiledversion="1.0.3" orientation="orthogonal" renderorder="right-down" width="40" height="20" tilewidth="128" tileheight="128" nextobjectid="7">
  <tileset firstgid="1" source="tiles.tsx"/>
  <tileset firstgid="3" source="objects.tsx"/>
- <layer id="1" name="Platforms" width="40" height="20">
+ <layer name="Platforms" width="40" height="20">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -26,7 +26,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="2" name="Anchors" width="40" height="20">
+ <layer name="Anchors" width="40" height="20">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -50,15 +50,15 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="4" name="Dynamic Objects">
+ <objectgroup name="Dynamic Objects">
   <object id="3" name="Crate1" gid="3" x="559.758" y="2143.27" width="32" height="32">
    <properties>
-    <property name="mass" type="float" value="10"/>
+    <property name="mass" type="float" value="0.25"/>
    </properties>
   </object>
   <object id="4" name="Crate2" gid="3" x="671.879" y="2119.03" width="32" height="32">
    <properties>
-    <property name="mass" type="float" value="5"/>
+    <property name="mass" type="float" value="0.5"/>
    </properties>
   </object>
  </objectgroup>
