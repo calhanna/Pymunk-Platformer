@@ -142,7 +142,7 @@ def load_map(path_to_level):
 
 map = load_map('maps/test_level_2.tmx')
 
-player = Player(100, 800, space)
+player = Player(100, 1200, space)
 
 def convert_pygame(pos):
     """ Convert between pymunk coordinates, which dictate the center of an object, to pygame coordinates, which dictate the top left corner."""
@@ -238,7 +238,10 @@ while not done:
             space.remove(grapple)
             grapple = None
 
-    if not keys[pygame.K_q] and step != 1/60:
+    if keys[pygame.K_q]:
+        if step == 1/60:    #Slow motion. This step variable is used as the time difference for the physics engine update. By decreasing the value, we slow down "time" by slowing down the physics engine
+            step = 1/360
+    elif step != 1/60:
         step = 1/60
 
     for event in pygame.event.get():
@@ -253,9 +256,6 @@ while not done:
             if event.key == pygame.K_p and keys[pygame.K_LCTRL]:
                 debug = not debug   # Toggle drawing hitboxes
                 space.gravity = 0,0
-            
-            elif event.key == pygame.K_q:
-                step = 1/360
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
@@ -270,7 +270,7 @@ while not done:
                         space.add(grapple)                                                                              #   Good for modelling chains.
 
                 for obj in objects:
-                    if distance(mouse, (obj[0].body.position[0], -obj[0].body.position[1] + 600)) < 60:
+                    if distance(mouse, (obj[0].body.position[0], -obj[0].body.position[1] + 600)) < 60 and grapple == None:
                         max = distance(player.rect.center, (obj[0].body.position[0], -obj[0].body.position[1] + 600))
                         grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, obj[0].body, (0,0), (0,0), 0, max)    #   We set the grapple to a pymunk SlideJoint constraint which allows the player to move so long as it is not outside of the min and max distances
                         space.add(grapple)  
@@ -281,7 +281,7 @@ while not done:
     grounded = False
     for x, y, gid in map.get_layer_by_name("Platforms"):
         if map.get_tile_image_by_gid(gid) != None:
-            rect = pygame.Rect(x * map.tilewidth, y * map.tileheight - 10, map.tilewidth, map.tileheight)
+            rect = pygame.Rect(x * map.tilewidth + 2, y * map.tileheight - 8, map.tilewidth - 2, map.tileheight)
             if rect.colliderect(player.rect):
                 grounded = True
     for obj in objects:
