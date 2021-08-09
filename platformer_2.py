@@ -226,6 +226,9 @@ while not done:
         if keys[pygame.K_LCTRL]:
             grapple.max += 5
 
+        if grapple.b != pymunk.Body.KINEMATIC:
+            max = distance(player.rect.center, (grapple.b.position[0], -grapple.b.position[1] + 600))
+
         if pygame.mouse.get_pressed()[0] == False:
             space.remove(grapple)
             grapple = None
@@ -255,6 +258,12 @@ while not done:
                         max = distance(player.rect.center, (anchor.position[0], -anchor.position[1] + 600))
                         grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, anchor, (0,0), (0,0), 0, max)    #   We set the grapple to a pymunk SlideJoint constraint which allows the player to move so long as it is not outside of the min and max distances
                         space.add(grapple)                                                                              #   Good for modelling chains.
+
+                for obj in objects:
+                    if distance(mouse, (obj[0].body.position[0], -obj[0].body.position[1] + 600)) < 60:
+                        max = distance(player.rect.center, (obj[0].body.position[0], -obj[0].body.position[1] + 600))
+                        grapple: pymunk.Constraint() = pymunk.SlideJoint(player.body, obj[0].body, (0,0), (0,0), 0, max)    #   We set the grapple to a pymunk SlideJoint constraint which allows the player to move so long as it is not outside of the min and max distances
+                        space.add(grapple)  
 
     if done: break # Quit Game
 
