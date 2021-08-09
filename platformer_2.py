@@ -8,13 +8,16 @@
 #   -   Clean up
 
 
-import os, math
+import os, sys, math
 
 import pygame, pytmx
 
 import pymunk, pymunk.pygame_util
 
 from player import Player
+
+if sys.version_info[0] != 3:
+    print('This game requires at least Python version 3.0.0')
 
 if pymunk.version != '5.7.0':
     print("Pymunk must be at version 5.7.0, due to a gamebreaking incompatibility with pymunk 6.0.0 and pygame")
@@ -50,6 +53,8 @@ grapple_increment = 0
 
 anchors = []
 objects = []
+
+step = 1/60
 
 #--------------------------------
 
@@ -233,6 +238,8 @@ while not done:
             space.remove(grapple)
             grapple = None
 
+    if not keys[pygame.K_q] and step != 1/60:
+        step = 1/60
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -246,6 +253,9 @@ while not done:
             if event.key == pygame.K_p and keys[pygame.K_LCTRL]:
                 debug = not debug   # Toggle drawing hitboxes
                 space.gravity = 0,0
+            
+            elif event.key == pygame.K_q:
+                step = 1/360
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a or event.key == pygame.K_d and grounded:
@@ -274,8 +284,12 @@ while not done:
             rect = pygame.Rect(x * map.tilewidth, y * map.tileheight - 10, map.tilewidth, map.tileheight)
             if rect.colliderect(player.rect):
                 grounded = True
+    for obj in objects:
+        rect = pygame.Rect(obj[0].body.position[0] - 16, -obj[0].body.position[1] + 600 - 20, 30, 32)
+        if rect.colliderect(player.rect):
+            grounded = True
 
-    space.step(1/60)
+    space.step(step)
 
     #Player movement function
     player.update(pygame.event.get(), grounded)
