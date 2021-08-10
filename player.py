@@ -6,6 +6,8 @@ class Player():
     def __init__(self, x, y, space):
 
         self.image = pygame.image.load('images/player/idle.png')
+        self.image_left = pygame.transform.flip(self.image, True, False)
+        self.image_right = self.image
 
         self.rect = self.image.get_rect()
 
@@ -25,15 +27,19 @@ class Player():
         move = pygame.Vector2((0, 0))
         self.hitbox.friction = 0.5
 
-        if pressed[pygame.K_a]: move += (-1, 0)
+        if pressed[pygame.K_a]: 
+            move += (-1, 0)
+            self.image = self.image_left
 
-        if pressed[pygame.K_d]: move += (1, 0)
+        if pressed[pygame.K_d]: 
+            move += (1, 0)
+            self.image = self.image_right
 
         if move.length() > 0: move.normalize_ip()
         else: 
             self.hitbox.friction = 0.8
 
         if gnd:
-            self.body.apply_impulse_at_local_point(move*10)
+            self.body.apply_impulse_at_local_point(move*13)
         else:
-            self.body.apply_impulse_at_local_point(move*5)
+            self.body.apply_impulse_at_local_point(move*6)
