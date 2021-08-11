@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.0" tiledversion="1.0.3" orientation="orthogonal" renderorder="right-down" width="40" height="20" tilewidth="128" tileheight="128" nextobjectid="45">
+<map version="1.5" tiledversion="1.6.0" orientation="orthogonal" renderorder="right-down" width="40" height="20" tilewidth="128" tileheight="128" infinite="0" nextlayerid="7" nextobjectid="46">
  <tileset firstgid="1" source="tiles.tsx"/>
  <tileset firstgid="6" source="objects.tsx"/>
- <layer name="Platforms" width="40" height="20">
+ <layer id="1" name="Platforms" width="40" height="20">
   <data encoding="csv">
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
 3,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,
@@ -26,7 +26,12 @@
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
 </data>
  </layer>
- <layer name="Ladders" width="40" height="20">
+ <objectgroup id="6" name="Triggers">
+  <object id="45" name="Spawn" x="208" y="2368">
+   <point/>
+  </object>
+ </objectgroup>
+ <layer id="2" name="Ladders" width="40" height="20">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -50,7 +55,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer name="Anchors" width="40" height="20">
+ <layer id="3" name="Anchors" width="40" height="20">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -74,10 +79,10 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup name="Dynamic Objects">
+ <objectgroup id="4" name="Dynamic Objects">
   <object id="43" gid="6" x="568.848" y="1012.97" width="32" height="32"/>
  </objectgroup>
- <objectgroup name="Small Platforms">
+ <objectgroup id="5" name="Small Platforms">
   <object id="3" type="Platform" gid="5" x="642.061" y="2110.79" width="128" height="64"/>
   <object id="4" type="Platform" gid="5" x="769.333" y="2110.79" width="128" height="64"/>
   <object id="5" type="Platform" gid="5" x="1022.85" y="2110.39" width="128" height="64"/>
