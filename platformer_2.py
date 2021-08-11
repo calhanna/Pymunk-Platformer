@@ -26,8 +26,8 @@ if pymunk.version != '5.7.0':
 
 WIDTH = 800
 HEIGHT = 600
-SPEED_LIMIT = 120
-GRAVITY = 800
+SPEED_LIMIT = 500
+GRAVITY = 1000
     
 #   INITIALISATION
 #-------------------------------
@@ -43,6 +43,7 @@ debug_layer = pygame.Surface((5120, 5120))  # When debug_draw is active we draw 
 
 space = pymunk.Space()
 space.gravity = 0, -GRAVITY
+space.collision_bias = 0.000000000001
 
 camera = pygame.Vector2((0,0))      #The "camera" is a vector by which we offset every element before drawing it.
 
@@ -105,7 +106,7 @@ def load_map(path_to_level):
         for rect in rects:                              # However, it is kinda broken right now, and you may notice a bump between the 4th and 5th tiles of the first platform.
             for rect_2 in rects:
                 if rect.y == rect_2.y and rect != rect_2:
-                    if rect.x - rect_2.x < rect.width + 128 and rect.x - rect_2.x >= -128:
+                    if rect.x - rect_2.x < rect.width + 128 and rect.x - rect_2.x > -128:
                         rect.width += rect_2.width
                         if rect_2.x < rect.x:
                             rect.x = rect_2.x
@@ -158,9 +159,10 @@ def load_map(path_to_level):
 
     return map
 
-map = load_map('maps/test_level_2.tmx')
+map = load_map('maps/tutorial.tmx')
 
-player = Player(100, 1200, space)
+spawn = map.get_object_by_name('Spawn')
+player = Player(spawn.x, spawn.y, space)
 
 def convert_pygame(pos):
     """ Convert between pymunk coordinates, which dictate the center of an object, to pygame coordinates, which dictate the top left corner."""
@@ -185,9 +187,6 @@ def find_angle(pos, obj):
 
 def draw():
     """ Draw every object, including the level"""
-
-    # You may notice a lot of try, except TypeError statements in this function. For some reason it raises a typerror after the player comes off a ladder. I do not know why.
-
     screen.fill((50,50,50))
 
     if debug: 
@@ -195,18 +194,26 @@ def draw():
         space.debug_draw(draw_options)
         screen.blit(debug_layer, camera)    #   Draw the layer containing all hitboxes and debug utilities to the screen, offset by the camera
 
-    for layer in map.visible_layers:
-        if layer != map.get_layer_by_name("Dynamic Objects") and layer != map.get_layer_by_name('Small Platforms'):
-            for x, y, gid in layer:
-                img = map.get_tile_image_by_gid(gid)
+    print(map.visible_tile_layers)
+    print(map.visible_layers)
+    for num in map.visible_tile_layers:
+        layer = map.layers[num]
+        for x, y, gid in layer:
+            img = map.get_tile_image_by_gid(gid)
 
-                if img != None:
-                    rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
-                    screen.blit(img, rect.move(*camera))
-        else:
-            for object in objects:  #   Each object is a tuple containing the hitbox, the tile image and the dimensions of the object
-                rect = pygame.Rect(object[0].body.position[0] - object[2][0]/2, -object[0].body.position[1] + HEIGHT - object[2][1]/2, object[2][0], object[2][1])
-                screen.blit(object[1], rect.move(*camera))
+            if img != None:
+                rect = pygame.Rect(x * map.tilewidth, y * map.tileheight, map.tilewidth, map.tileheight)
+                screen.blit(img, rect.move(*camera))
+    
+    for object in map.get_layer_by_name("Small Platforms"):  # Drawing objects that dont move
+        rect = pygame.Rect(object.x, object.y, object.width, object.height)
+        screen.blit(object.image, rect.move(*camera))
+
+
+    for object in objects:  #   Each object is a tuple containing the hitbox, the tile image and the dimensions of the object. This is for objects that move
+        print(object)
+        rect = pygame.Rect(object[0].body.position[0] - object[2][0]/2, -object[0].body.position[1] + HEIGHT - object[2][1]/2, object[2][0], object[2][1])
+        screen.blit(object[1], rect.move(*camera))
 
 
     if grapple != None:
@@ -297,7 +304,7 @@ while not done:
     if done: break # Quit Game
 
     if keys[pygame.K_SPACE] and grounded:
-        player.body.apply_impulse_at_local_point((0, 800)) # Jump
+        player.body.apply_impulse_at_local_point((0, 1000)) # Jump
         grounded = False
 
     # Check if player is on a platform
@@ -314,6 +321,10 @@ while not done:
                 grounded = True
         for ladder in ladders:
             if ladder.move(0,-10).colliderect(player.rect):
+                grounded = True
+        for platform in map.get_layer_by_name("Small Platforms"):
+            rect = pygame.Rect(platform.x, platform.y - 5, platform.width, platform.height)
+            if rect.colliderect(player.rect):
                 grounded = True
 
     # Ladder Movement
@@ -344,13 +355,13 @@ while not done:
         player.rect.center = convert_pygame(player.body.position)
         player.body.angle = 0 # Prevent flipping
 
-    #if grounded:                                    # Velocity Limiting. We take the player's current horizontal velocity and check it against the speed limit. 
-    #    if player.body.velocity.x > SPEED_LIMIT:    # If it is above, we set the velocity to the speed limit, but do not change the vertical velocity.
-    #        player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
-    #    elif player.body.velocity.x < -SPEED_LIMIT:
-    #        player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
+    if grounded or grapple != None:                                    # Velocity Limiting. We take the player's current horizontal velocity and check it against the speed limit. 
+        if player.body.velocity.x > SPEED_LIMIT:    # If it is above, we set the velocity to the speed limit, but do not change the vertical velocity.
+            player.body._set_velocity((SPEED_LIMIT, player.body.velocity.y))
+        elif player.body.velocity.x < -SPEED_LIMIT:
+            player.body._set_velocity((-SPEED_LIMIT, player.body.velocity.y))
 
-        camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player
+    camera = pygame.Vector2((-player.body.position[0] + 400, player.body.position[1] - 300)) # center camera on player
   
     draw()
 
@@ -358,7 +369,7 @@ while not done:
     if player.rect.x < -128 or player.rect.x > 5320 or player.rect.y > 3000 or player.rect.y < 0:
         space = pymunk.Space()
         space.gravity = 0, -GRAVITY
-        player = Player(100, 1200, space)
+        player = Player(spawn.x, spawn.y, space)
         grapple = None
         map = load_map('maps/test_level_2.tmx')
 
